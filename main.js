@@ -171,7 +171,7 @@ fastify.get("/export/document/:documentId", async (request, reply) => {
   }
 });
 
-fastify.post("/document", async (request, reply) => {
+fastify.post("/data", async (request, reply) => {
   let connection;
   try {
     connection = await client.connect();
@@ -232,6 +232,28 @@ fastify.post("/document", async (request, reply) => {
     return reply
       .status(400)
       .send({ error: `Error inserting document: ${error.message}` });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
+fastify.delete("/data", async (request, reply) => {
+  let connection;
+  try {
+    connection = await client.connect();
+    const db = client.db(dbName);
+    await db.collection("users").deleteMany({});
+    await db.collection("folders").deleteMany({});
+    await db.collection("documents").deleteMany({});
+    await db.collection("fileMetadata").deleteMany({});
+    await db.collection("versions").deleteMany({});
+    fastify.log.info(`Deleted all documents successfully`);
+    return reply.status(204).send();
+  } catch (error) {
+    fastify.log.error(`Error deleting documents: ${error.message}`);
+    return reply
+      .status(400)
+      .send({ error: `Error deleting documents: ${error.message}` });
   } finally {
     if (connection) await connection.close();
   }
